@@ -1,3 +1,24 @@
+-- Mis custom mappings
+
+local opts = { noremap = true, silent = true }
+local keymap = vim.keymap
+-- Exit navigation
+keymap.set('i', 'fj', '<Esc>', opts)
+keymap.set('v', 'fj', '<Esc>', opts)
+-- Remap navigation
+keymap.set('n', 'j', 'k', opts)
+keymap.set('n', 'k', 'j', opts)
+keymap.set('v', 'j', 'k', opts)
+keymap.set('v', 'k', 'j', opts)
+
+-- Go to definition / See references
+keymap.set('n', 'gd', '<cmd>lua vim.lsp.buf.definition()<CR>', opts)
+keymap.set('n', 'gD', '<cmd>Telescope lsp_references<CR>', opts)
+
+-- Switch buffers
+keymap.set('n', '<leader>j', ':bnext<CR>', opts)
+keymap.set('n', '<leader>k', ':bprevious<CR>', opts)
+
 --[[
 
 =====================================================================
@@ -187,8 +208,8 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  See `:help wincmd` for a list of all window commands
 vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
-vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
-vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
+vim.keymap.set('n', '<C-k>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
+vim.keymap.set('n', '<C-j>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -236,8 +257,8 @@ require('lazy').setup({
   --
   --  This is equivalent to:
   --    require('Comment').setup({})
-
-  -- "gc" to comment visual regions/lines
+  --
+  -- -- "gc" to comment visual regions/lines
   { 'numToStr/Comment.nvim', opts = {} },
 
   -- Here is a more advanced example where we pass configuration
