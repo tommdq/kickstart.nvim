@@ -7,9 +7,8 @@ local keymap = vim.keymap
 vim.opt.expandtab = true
 vim.opt.shiftwidth = 2
 vim.opt.tabstop = 2
--- vim.opt.foldlevel = 20
--- vim.opt.foldmethod = 'expr'
--- -- vim.opt.foldexpr = nvim_treesitter#foldexpr()
+vim.opt.foldlevel = 20
+vim.opt.foldmethod = 'expr'
 
 -- Exit navigation
 keymap.set('i', 'fj', '<Esc>', opts)
@@ -33,50 +32,26 @@ vim.api.nvim_set_keymap('v', '<C-_>', '<ESC><CMD>lua require("Comment.api").togg
 vim.api.nvim_set_keymap('i', '<C-_>', '<ESC><CMD>lua require("Comment.api").toggle.linewise(vim.fn.visualmode())<CR>', opts)
 -- Fixes Notify opacity issues
 vim.o.termguicolors = true
+vim.opt.showtabline = 2
+function MyTabLabel(n)
+  return vim.fn.fnamemodify(vim.fn.bufname(vim.fn.winbufnr(n)), ':t')
+end
 
---[[
-=====================================================================
-==================== READ THIS BEFORE CONTINUING ====================
-=====================================================================
-========                                    .-----.          ========
-========         .----------------------.   | === |          ========
-========         |.-""""""""""""""""""-.|   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||   KICKSTART.NVIM   ||   |-----|          ========
-========         ||                    ||   | === |          ========
-========         ||                    ||   |-----|          ========
-========         ||:Tutor              ||   |:::::|          ========
-========         |'-..................-'|   |____o|          ========
-========         `"")----------------(""`   ___________      ========
-========        /::::::::::|  |::::::::::\  \ no mouse \     ========
-========       /:::========|  |==hjkl==:::\  \ required \    ========
-========      '""""""""""""'  '""""""""""""'  '""""""""""'   ========
-========                                                     ========
-=====================================================================
-=====================================================================
+function MyTabLine()
+  local s = ''
+  for i = 1, vim.fn.tabpagenr '$' do
+    local tabnr = i
+    local winnr = vim.fn.tabpagewinnr(tabnr)
+    local buflist = vim.fn.tabpagebuflist(tabnr)
+    local bufnr = buflist[winnr]
+    local file = vim.fn.bufname(bufnr)
+    file = vim.fn.fnamemodify(file, ':t')
+    s = s .. '%' .. tabnr .. 'T' .. (tabnr == vim.fn.tabpagenr() and '%#TabLineSel#' or '%#TabLine#') .. ' ' .. file .. ' '
+  end
+  return s .. '%#TabLineFill#%T'
+end
 
-What is Kickstart?
-
-  Kickstart.nvim is *not* a distribution.
-
-  Kickstart.nvim is a starting point for your own configuration.
-    The goal is that you can read every line of code, top-to-bottom, understand
-    what your configuration is doing, and modify it to suit your needs.
-
-    Once you've done that, you can start exploring, configuring and tinkering to
-    make Neovim your own! That might mean leaving Kickstart just the way it is for a while
-    or immediately breaking it into modular pieces. It's up to you!
-
-    If you don't know anything about Lua, I recommend taking some time to read through
-    a guide. One possible example which will only take 10-15 minutes:
-      - https://learnxinyminutes.com/docs/lua/
-
-    After understanding a bit more about Lua, you can use `:help lua-guide` as a
-    reference for how Neovim integrates Lua.
-    - :help lua-guide
-    - (or HTML version): https://neovim.io/doc/user/lua-guide.html
-
---]]
+vim.opt.tabline = '%!v:lua.MyTabLine()'
 
 -- Set <space> as the leader key
 vim.g.mapleader = ' '
@@ -141,6 +116,10 @@ vim.opt.scrolloff = 10
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
 
+-- Move between tabs
+vim.keymap.set('n', 'gj', ':tabprevious<CR>', opts)
+vim.keymap.set('n', 'gk', ':tabnext<CR>', opts)
+
 -- Set highlight on search, but clear on pressing <Esc> in normal mode
 vim.opt.hlsearch = true
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
@@ -159,16 +138,9 @@ vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagn
 -- or just use <C-\><C-n> to exit terminal mode
 vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' })
 
--- TIP: Disable arrow keys in normal mode
--- vim.keymap.set('n', '<left>', '<cmd>echo "Use h to move!!"<CR>')
--- vim.keymap.set('n', '<right>', '<cmd>echo "Use l to move!!"<CR>')
--- vim.keymap.set('n', '<up>', '<cmd>echo "Use k to move!!"<CR>')
--- vim.keymap.set('n', '<down>', '<cmd>echo "Use j to move!!"<CR>')
-
 -- Keybinds to make split navigation easier.
 --  Use CTRL+<hjkl> to switch between windows
 --
---  See `:help wincmd` for a list of all window commands
 vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
@@ -337,11 +309,26 @@ require('lazy').setup({
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         defaults = {
-          mappings = {},
+          mappings = {
+            n = {
+              ['<leader>v'] = 'select_vertical',
+              ['<leader>h'] = 'select_horizontal',
+              ['<leader>t'] = 'select_tab',
+              ['j'] = 'move_selection_previous',
+              ['k'] = 'move_selection_next',
+            },
+          },
           path_display = { 'tail' },
           selection_caret = '->',
           dynamic_preview_title = true,
           layout_strategy = 'vertical',
+          initial_mode = 'normal',
+          layout_config = {
+            vertical = {
+              preview_cutoff = 0, -- muestra el preview para todos los tamaños de ventana
+              preview_height = 0.5, -- ajusta la altura del preview (0.5 significa 50% del espacio)
+            },
+          },
         },
         pickers = {
           lsp_references = {
@@ -386,9 +373,9 @@ require('lazy').setup({
         },
       }
       -- Opens telescope find files when opening vim
-      if vim.fn.argv(0) == '' then
-        vim.cmd 'Telescope find_files'
-      end
+      -- if vim.fn.argv(0) == '' then
+      --   vim.cmd 'Telescope find_files'
+      -- end
 
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
@@ -601,7 +588,6 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`tsserver`) will work just fine
         tsserver = {},
-        shfmt = {},
 
         lua_ls = {
           -- cmd = {...},
