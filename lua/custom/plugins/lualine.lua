@@ -29,6 +29,9 @@ return {
         --   'buffers',
         -- },
       },
+      lualine_c = {
+        { 'filename', path = 4 },
+      },
     },
   },
 }

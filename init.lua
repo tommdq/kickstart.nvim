@@ -13,10 +13,22 @@ vim.opt.foldlevel = 20
 vim.opt.foldmethod = 'expr'
 
 -- Set pwsh as default shell
-vim.opt.shell = 'pwsh'
-vim.opt.shellcmdflag = '-NoLogo -NoProfile -ExecutionPolicy RemoteSigned -Command'
-vim.opt.shellquote = ''
-vim.opt.shellxquote = ''
+-- Check if 'pwsh' is executable and set the shell accordingly
+if vim.fn.executable 'pwsh' == 1 then
+  vim.o.shell = 'pwsh'
+else
+  vim.o.shell = 'powershell'
+end
+-- Setting shell command flags
+vim.o.shellcmdflag =
+  "-NoLogo -ExecutionPolicy RemoteSigned -Command [Console]::InputEncoding=[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new();$PSDefaultParameterValues['Out-File:Encoding']='utf8';"
+-- Setting shell redirection
+vim.o.shellredir = '2>&1 | %{ "$_" } | Out-File %s; exit $LastExitCode'
+-- Setting shell pipe
+vim.o.shellpipe = '2>&1 | %{ "$_" } | Tee-Object %s; exit $LastExitCode'
+-- Setting shell quote options
+vim.o.shellquote = ''
+vim.o.shellxquote = ''
 
 -- Exit navigation
 keymap.set('i', 'fj', '<Esc>', opts)
@@ -35,9 +47,9 @@ keymap.set('n', '<leader>k', ':bprevious<CR>', opts)
 keymap.set('n', '<C-a>', 'gg<S-v>G')
 
 -- Comment
-vim.api.nvim_set_keymap('n', '<C-_>', '<CMD>lua require("Comment.api").toggle.linewise.current()<CR>', opts)
-vim.api.nvim_set_keymap('v', '<C-_>', '<ESC><CMD>lua require("Comment.api").toggle.linewise(vim.fn.visualmode())<CR>', opts)
-vim.api.nvim_set_keymap('i', '<C-_>', '<ESC><CMD>lua require("Comment.api").toggle.linewise(vim.fn.visualmode())<CR>', opts)
+-- vim.api.nvim_set_keymap('n', '<C-_>', '<CMD>lua require("Comment.api").toggle.linewise.current()<CR>', opts)
+-- vim.api.nvim_set_keymap('v', '<C-_>', '<CMD>lua require("Comment.api").toggle.linewise(vim.fn.visualmode())<CR>', opts)
+vim.api.nvim_set_keymap('i', '<C-_>', '<CMD>lua require("Comment.api").toggle.linewise(vim.fn.visualmode())<CR>', opts)
 -- Fixes Notify opacity issues
 vim.o.termguicolors = true
 vim.opt.showtabline = 2
@@ -135,8 +147,13 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = 'Go to previous [D]iagnostic message' })
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = 'Go to next [D]iagnostic message' })
-vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
+-- vim.keymap.set('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show diagnostic [E]rror messages' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+
+vim.diagnostic.config {
+  virtual_text = true,
+  signs = false,
+}
 
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
@@ -167,6 +184,17 @@ vim.api.nvim_create_autocmd('TextYankPost', {
     vim.highlight.on_yank()
   end,
 })
+
+-- Sort imports on save ? testearlo
+-- vim.api.nvim_create_autocmd('BufWritePre', {
+--   group = vim.api.nvim_create_augroup('TS_organize_imports', { clear = true }),
+--   desc = 'Organize imports before saving the file',
+--   pattern = { '*.ts', '*.tsx' },
+--   callback = function()
+--     vim.cmd 'TypescriptOrganizeImports'
+--     vim.cmd 'write'
+--   end,
+-- })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
@@ -205,11 +233,9 @@ require('lazy').setup({
   { 'JoosepAlviste/nvim-ts-context-commentstring', opts = { enable_autocmd = false } },
   {
     'numToStr/Comment.nvim',
-    lazy = false,
+    dependencies = 'JoosepAlviste/nvim-ts-context-commentstring',
     config = function()
-      require('Comment').setup {
-        pre_hook = require('ts_context_commentstring.integrations.comment_nvim').create_pre_hook(),
-      }
+      require('Comment').setup {}
     end,
   },
 
@@ -335,7 +361,7 @@ require('lazy').setup({
               ['k'] = 'move_selection_next',
             },
           },
-          path_display = { 'tail' },
+          path_display = { 'smart' },
           selection_caret = '->',
           dynamic_preview_title = true,
           layout_strategy = 'vertical',
@@ -352,6 +378,7 @@ require('lazy').setup({
             show_line = false,
           },
           live_grep = {
+            initial_mode = 'insert',
             additional_args = function(opts)
               return { '--glob', '!*.test*' }
             end,
@@ -377,12 +404,14 @@ require('lazy').setup({
           buffers = {
             show_all_buffers = true,
             sort_mru = true,
+            initial_mode = 'insert',
             mappings = {
               i = {
                 ['<c-d>'] = 'delete_buffer',
               },
             },
           },
+          git_status = {},
         },
         extensions = {
           ['ui-select'] = {
@@ -390,10 +419,6 @@ require('lazy').setup({
           },
         },
       }
-      -- Opens telescope find files when opening vim
-      -- if vim.fn.argv(0) == '' then
-      --   vim.cmd 'Telescope find_files'
-      -- end
 
       -- Enable Telescope extensions if they are installed
       pcall(require('telescope').load_extension, 'fzf')
@@ -402,7 +427,7 @@ require('lazy').setup({
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
 
-      vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
+      vim.keymap.set('n', '<leader>sh', builtin.git_status, { desc = '[S]earch Git[H]ub Status' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
       vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
@@ -507,6 +532,16 @@ require('lazy').setup({
           -- or a suggestion from your LSP for this to activate.
           map('<leader>ca', vim.lsp.buf.code_action, '[C]ode [A]ction')
 
+          local function quickfix()
+            vim.lsp.buf.code_action {
+              filter = function(a)
+                return a.isPreferred or (a.title and (a.title:match 'Import' or a.title:match 'import'))
+              end,
+              apply = true,
+            }
+          end
+
+          map('<leader>e', quickfix, 'Quick fix')
           -- Opens a popup that displays documentation about the word under your cursor
           --  See `:help K` for why this keymap.
           map('K', vim.lsp.buf.hover, 'Hover Documentation')
@@ -670,6 +705,20 @@ require('lazy').setup({
         typescript = 'typescript',
         typescriptreact = 'typescript',
         css = 'css',
+      },
+    },
+  },
+
+  {
+    'jose-elias-alvarez/typescript.nvim',
+    opts = {
+      disable_commands = false, -- prevent the plugin from creating Vim commands
+      debug = false, -- enable debug logging for commands
+      go_to_source_definition = {
+        fallback = true, -- fall back to standard LSP definition on failure
+      },
+      server = { -- pass options to lspconfig's setup method
+        on_attach = ...,
       },
     },
   },
@@ -898,19 +947,47 @@ require('lazy').setup({
   require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- My Plugins and mappings
+
+  -- floating term
+  -- {
+  --   'akinsho/toggleterm.nvim',
+  --   version = '*',
+  --   config = true,
+  --   opts = {
+  --     open_mapping = [[<c-\>]],
+  --     shell = vim.o.shell,
+  --     direction = 'float',
+  --   },
+  -- },
   {
-    'akinsho/toggleterm.nvim',
-    version = '*',
-    config = true,
-    opts = {
-      open_mapping = [[<c-\>]],
-      shell = vim.o.shell,
-      direction = 'float',
-    },
+    'chentoast/marks.nvim',
+    config = function()
+      require('marks').setup {
+        -- default_mappings = true,
+        -- builtin_marks = { '.', '<', '>', '^' },
+        cyclic = true,
+        force_write_shada = false,
+        refresh_interval = 250,
+        sign_priority = { lower = 10, upper = 15, builtin = 8, bookmark = 20 },
+        excluded_filetypes = {},
+        excluded_buftypes = {},
+        -- marks.nvim allows you to configure up to 10 bookmark groups, each with its own
+        -- sign/virttext. Bookmarks can be used to group together positions and quickly move
+        -- across multiple buffers. default sign is '!@#$%^&*()' (from 0 to 9), and
+        -- default virt_text is "".
+        bookmark_0 = {
+          sign = '⚑',
+          -- virt_text = 'hello world',
+          annotate = false,
+        },
+        mappings = {},
+      }
+    end,
   },
+
   {
     'folke/noice.nvim',
     config = function()
