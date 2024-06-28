@@ -185,17 +185,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   end,
 })
 
--- Sort imports on save ? testearlo
--- vim.api.nvim_create_autocmd('BufWritePre', {
---   group = vim.api.nvim_create_augroup('TS_organize_imports', { clear = true }),
---   desc = 'Organize imports before saving the file',
---   pattern = { '*.ts', '*.tsx' },
---   callback = function()
---     vim.cmd 'TypescriptOrganizeImports'
---     vim.cmd 'write'
---   end,
--- })
-
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -661,7 +650,7 @@ require('lazy').setup({
 
   { -- Autoformat
     'stevearc/conform.nvim',
-    lazy = false,
+    event = { 'LspAttach', 'BufReadPost', 'BufNewFile' },
     keys = {
       {
         '<leader>f',
@@ -680,7 +669,7 @@ require('lazy').setup({
         -- languages here or re-enable it for the disabled ones.
         local disable_filetypes = { c = true, cpp = true }
         return {
-          timeout_ms = 500,
+          timeout_ms = 1000,
           lsp_fallback = not disable_filetypes[vim.bo[bufnr].filetype],
         }
       end,
@@ -718,7 +707,24 @@ require('lazy').setup({
         fallback = true, -- fall back to standard LSP definition on failure
       },
       server = { -- pass options to lspconfig's setup method
-        on_attach = ...,
+        on_attach = function(client, bufnr)
+          -- Define mappings here
+          local function buf_set_keymap(...)
+            vim.api.nvim_buf_set_keymap(bufnr, ...)
+          end
+          local opts = { noremap = true, silent = true }
+
+          -- Mappings.
+          buf_set_keymap('n', '<leader>ti', '<Cmd>TypescriptAddMissingImports<CR>', { desc = 'Add missing imports' })
+          buf_set_keymap('n', '<leader>to', '<Cmd>TypescriptOrganizeImports<CR><Cmd>TypescriptRemoveUnused<CR>', { desc = 'Organize imports' })
+          -- buf_set_keymap('n', 'K', '<Cmd>lua vim.lsp.buf.hover()<CR>', opts)
+          -- buf_set_keymap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
+          -- buf_set_keymap('n', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
+          -- buf_set_keymap('n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
+          -- buf_set_keymap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', opts)
+          -- buf_set_keymap('n', '<leader>ca', '<cmd>lua vim.lsp.buf.code_action()<CR>', opts)
+          -- buf_set_keymap('n', '<leader>f', '<cmd>lua vim.lsp.buf.formatting()<CR>', opts)
+        end,
       },
     },
   },
@@ -839,6 +845,12 @@ require('lazy').setup({
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
+  {
+    'folke/tokyonight.nvim',
+    lazy = false,
+    priority = 1000,
+    opts = {},
+  },
 
   { -- Collection of various small independent plugins/modules
     'echasnovski/mini.nvim',
