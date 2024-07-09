@@ -46,6 +46,11 @@ keymap.set('n', '<leader>k', ':bprevious<CR>', opts)
 -- Select all
 keymap.set('n', '<C-a>', 'gg<S-v>G')
 
+-- Open file in new tab
+keymap.set('n', 'gt', '<cmd>tab split | lua vim.lsp.buf.definition()<CR>', {})
+-- Neotree reveal
+keymap.set('n', '<C-\\>', ':Neotree reveal<CR>', {})
+
 -- Comment
 -- vim.api.nvim_set_keymap('n', '<C-_>', '<CMD>lua require("Comment.api").toggle.linewise.current()<CR>', opts)
 -- vim.api.nvim_set_keymap('v', '<C-_>', '<CMD>lua require("Comment.api").toggle.linewise(vim.fn.visualmode())<CR>', opts)
@@ -343,6 +348,10 @@ require('lazy').setup({
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
         defaults = {
+          file_ignore_patterns = {
+            'node_modules',
+            'dist',
+          },
           mappings = {
             n = {
               ['<leader>v'] = 'select_vertical',
@@ -350,6 +359,7 @@ require('lazy').setup({
               ['<leader>t'] = 'select_tab',
               ['j'] = 'move_selection_previous',
               ['k'] = 'move_selection_next',
+              ['q'] = 'send_selected_to_qflist',
             },
           },
           path_display = { 'smart' },
@@ -388,6 +398,10 @@ require('lazy').setup({
               '!.git',
               '--glob',
               '!coverage',
+              '--glob',
+              '!dist',
+              '--glob',
+              '!postgres',
             },
             no_ignore = true,
             initial_mode = 'insert',
@@ -717,15 +731,9 @@ require('lazy').setup({
           local opts = { noremap = true, silent = true }
 
           -- Mappings.
-          buf_set_keymap('n', '<leader>ti', '<Cmd>TypescriptAddMissingImports<CR>', { desc = 'Add missing imports' })
-          buf_set_keymap('n', '<leader>to', '<Cmd>TypescriptOrganizeImports<CR><Cmd>TypescriptRemoveUnused<CR>', { desc = 'Organize imports' })
-          -- buf_set_keymap('n', 'K', '<Cmd>lua vim.lsp.buf.hover()<CR>', opts)
-          -- buf_set_keymap('n', 'gi', '<cmd>lua vim.lsp.buf.implementation()<CR>', opts)
-          -- buf_set_keymap('n', '<C-k>', '<cmd>lua vim.lsp.buf.signature_help()<CR>', opts)
-          -- buf_set_keymap('n', '<leader>rn', '<cmd>lua vim.lsp.buf.rename()<CR>', opts)
-          -- buf_set_keymap('n', 'gr', '<cmd>lua vim.lsp.buf.references()<CR>', opts)
-          -- buf_set_keymap('n', '<leader>ca', '<cmd>lua vim.lsp.buf.code_action()<CR>', opts)
-          -- buf_set_keymap('n', '<leader>f', '<cmd>lua vim.lsp.buf.formatting()<CR>', opts)
+          buf_set_keymap('n', '<leader>ti', '<Cmd>TypescriptAddMissingImports<CR><Cmd>TypescriptRemoveUnused<CR>', { desc = 'Add missing imports' })
+          buf_set_keymap('n', '<leader>to', '<Cmd>TypescriptOrganizeImports<CR>', { desc = 'Organize imports' })
+          buf_set_keymap('n', '<leader>tu', '<Cmd>TypescriptRemoveUnused<CR>', { desc = 'Remove unused code' })
         end,
       },
     },
@@ -980,11 +988,10 @@ require('lazy').setup({
     'chentoast/marks.nvim',
     config = function()
       require('marks').setup {
-        -- default_mappings = true,
         -- builtin_marks = { '.', '<', '>', '^' },
         cyclic = true,
-        force_write_shada = false,
-        refresh_interval = 250,
+        force_write_shada = true,
+        refresh_interval = 150,
         sign_priority = { lower = 10, upper = 15, builtin = 8, bookmark = 20 },
         excluded_filetypes = {},
         excluded_buftypes = {},
@@ -992,11 +999,6 @@ require('lazy').setup({
         -- sign/virttext. Bookmarks can be used to group together positions and quickly move
         -- across multiple buffers. default sign is '!@#$%^&*()' (from 0 to 9), and
         -- default virt_text is "".
-        bookmark_0 = {
-          sign = '⚑',
-          -- virt_text = 'hello world',
-          annotate = false,
-        },
         mappings = {},
       }
     end,
