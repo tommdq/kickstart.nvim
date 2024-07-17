@@ -16,6 +16,7 @@ return {
             'tabs',
             show_modified_status = true,
             mode = 1,
+            max_length = vim.o.columns,
           },
         },
       },

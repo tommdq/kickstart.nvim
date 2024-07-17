@@ -351,6 +351,8 @@ require('lazy').setup({
           file_ignore_patterns = {
             'node_modules',
             'dist',
+            'package-lock.json',
+            'build',
           },
           mappings = {
             n = {
